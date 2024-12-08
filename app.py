@@ -10,11 +10,9 @@ CORS(app)  # 啟用 CORS 支持，允許跨域請求
 # 測試多個 IP API
 def get_real_ip():
     try:
-        # 清除代理設置
         os.environ.pop('http_proxy', None)
         os.environ.pop('https_proxy', None)
 
-        # 使用多個 IP API 嘗試訪問
         urls = [
             "https://api64.ipify.org",
             "https://api.my-ip.io/ip",
@@ -59,9 +57,3 @@ def log_ip():
     except Exception as e:
         print("Error processing request:", str(e))
         return jsonify({"status": "error", "message": "Internal server error"}), 500
-
-
-if __name__ == '__main__':
-    os.environ.pop('http_proxy', None)
-    os.environ.pop('https_proxy', None)
-    app.run(host="0.0.0.0", port=5000)
