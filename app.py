@@ -7,27 +7,36 @@ app = Flask(__name__)
 CORS(app)  # 啟用 CORS 支持，允許跨域請求
 
 # IPStack API Key
-IPSTACK_API_KEY = "b65895c140a75e13d0fa796d5c0acaef"  # 將此替換為你自己的 API Key
+IPSTACK_API_KEY = "b65895c140a75e13d0fa796d5c0acaef"  # 將此處替換為你實際的 IPStack Key
 
 
-# 使用第三方服務 IPStack 進行真實 IP 查詢和 VPN 檢測
+# 使用 IPStack 進行真實 IP 檢測
 def fetch_real_ip(ip_address):
     try:
+        # 建立 IPStack 請求 URL
         url = f"http://api.ipstack.com/{ip_address}?access_key={IPSTACK_API_KEY}"
-        response = requests.get(url, timeout=5)
+        print(f"Requesting IPStack URL: {url}")  # 調試日誌
         
+        # 發送請求
+        response = requests.get(url, timeout=10)  # 增加超時時間
+        print("HTTP Response status code:", response.status_code)  # 確認 HTTP 狀態碼
+
+        # 檢查請求是否成功
         if response.status_code == 200:
-            data = response.json()
-            if data.get("proxy", False) or data.get("vpn", False):  # 檢測是否使用 VPN 或 代理
-                print("Detected VPN/Proxy IP via IPStack analysis.")
-                return True
-            print("IP is normal, no VPN/Proxy detected.")
-            return False
+            print("IPStack Response JSON: ", response.json())  # 顯示完整返回 JSON
+            
+            # 檢查 VPN/Proxy 屬性
+            if response.json().get("proxy", False) or response.json().get("vpn", False):
+                print("Detected VPN/Proxy IP detected via IPStack response.")
+                return True  # 表示是 VPN 或代理 IP
+            else:
+                print("IPStack analysis clean, no VPN/Proxy detected.")
+                return False  # 表示不是 VPN 或代理 IP
         else:
-            print("IPStack request failed with status code:", response.status_code)
+            print("Request failed. Response returned:", response.text)
             return False
     except Exception as e:
-        print("Error during IPStack lookup: ", e)
+        print("Exception during IPStack request:", e)
         return False
 
 
@@ -43,12 +52,15 @@ def log_ip():
             extracted_ip = request.remote_addr
             print("Extracted IP from request.remote_addr: ", extracted_ip)
 
-        # 使用第三方服務進行 VPN 檢測
-        if fetch_real_ip(extracted_ip):
-            print("VPN/Proxy detected. Rejecting IP.")
+        # 測試是否為 VPN/Proxy
+        print("Checking VPN/Proxy status via IPStack...")
+        is_vpn_or_proxy = fetch_real_ip(extracted_ip)
+
+        if is_vpn_or_proxy:
+            print("VPN/Proxy detected based on IPStack analysis. Sending error response.")
             return jsonify({"status": "error", "message": "Detected VPN/Proxy IP"}), 400
         else:
-            print("IP is clean. Sending IP directly.")
+            print("No VPN/Proxy detected. Sending extracted IP back to client.")
             return jsonify({"status": "success", "real_ip": extracted_ip}), 200
 
     except Exception as e:
@@ -62,4 +74,5 @@ if __name__ == '__main__':
     os.environ.pop('https_proxy', None)
 
     # 啟動 Flask 服務
+    print("Starting server on http://0.0.0.0:5000")
     app.run(host="0.0.0.0", port=5000, debug=True)
