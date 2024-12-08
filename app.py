@@ -9,16 +9,17 @@ CORS(app)  # 啟用 CORS 支持，允許跨域請求
 
 # 檢測 VPN/代理 IP 範疇
 def is_vpn_or_proxy(ip_address):
-    # 定義常見 VPN/代理 IP 範疇，這裡可以擴展更多範疇。
+    # 定義常見 VPN/代理 IP 範疇，這裡可以根據實際情況擴展更多範疇。
     vpn_ranges = [
         "146.70.",  # 常見的 VPN IP 範疇之一
-        "103.5.", 
-        "104.0.", 
+        "103.5.",
+        "104.0.",
         "178.62.",
         "35.184.",
         "13.93.",
         "45.33."
     ]
+    # 檢測 IP 是否匹配這些範疇
     for vpn_range in vpn_ranges:
         if ip_address.startswith(vpn_range):
             print("Detected VPN/Proxy IP range: ", vpn_range)
@@ -29,7 +30,7 @@ def is_vpn_or_proxy(ip_address):
 # 使用第三方服務進行真實 IP 查詢
 def fetch_real_ip():
     try:
-        # 使用外部 IP 检测服务，如 ipify 或其他第三方服務
+        # 使用第三方 IP 檢測服務
         urls = [
             "https://api64.ipify.org",
             "https://api.my-ip.io/ip",
@@ -83,6 +84,7 @@ def log_ip():
 
 
 if __name__ == '__main__':
+    # 移除可能影響請求的代理設定
     os.environ.pop('http_proxy', None)
     os.environ.pop('https_proxy', None)
     app.run(host="0.0.0.0", port=5000)
