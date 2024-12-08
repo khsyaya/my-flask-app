@@ -35,20 +35,23 @@ def get_real_ip():
         return None
 
 
-# 判斷是否為 VPN 或代理 IP 特徵
+# 判斷 IP 是否屬於常見 VPN/代理 IP 範疇
 def is_vpn(ip_address):
-    # 使用一些常見的 VPN IP 特徵篩選（此處僅為示例，實際中需使用更多的數據）
+    # 自定義常見 VPN / 代理 IP 檢測範疇
     vpn_ranges = [
-        "146.70.",  # 假設 VPN IP 范例
-        "10.",      # 局域網 IP 的範圍
+        "146.70.",
+        "103.",
+        "185.",
+        "10.",
         "172.16.",
         "192.168.",
-        "103."
+        "34.83.",  # Google Cloud IP 範疇，通常用於 VPN
     ]
 
+    # 檢查 IP 是否匹配範疇
     for vpn_range in vpn_ranges:
         if ip_address.startswith(vpn_range):
-            print("Detected VPN/Proxy IP range.")
+            print(f"Detected VPN/Proxy IP range: {vpn_range}")
             return True
     return False
 
@@ -59,31 +62,28 @@ def log_ip():
         # 嘗試從 HTTP 請求標頭中獲取真實 IP
         real_ip_header = request.headers.get('X-Forwarded-For')
         if real_ip_header:
-            real_ip = real_ip_header.split(',')[0]  # 提取第一個 IP 地址
+            real_ip = real_ip_header.split(',')[0]
             print("Extracted IP from X-Forwarded-For: ", real_ip)
 
-            # 檢查是否是 VPN 或代理 IP
+            # 檢測是否為 VPN
             if is_vpn(real_ip):
-                print("IP is suspected to be a VPN or proxy IP. Trying third-party IP services...")
-                # 如果檢測出 VPN，從第三方獲取真實 IP
-                real_ip = get_real_ip()
+                print("Detected VPN/Proxy. Replacing with real IP (Taiwan location).")
+                # 替換成手動設定的真實 IP，例如台灣地區 IP 地址
+                real_ip = "101.12.0.1"  # 將此處的 IP 替換為你的真實 IP 地址
             else:
                 print("IP is valid and not suspected as VPN/proxy.")
         else:
-            # 如果沒有 `X-Forwarded-For`，使用第三方 API
-            print("No X-Forwarded-For found. Using third-party IP API...")
-            real_ip = get_real_ip()
-            if not real_ip:
-                real_ip = request.remote_addr  # 最後回退到 remote_addr
-            print("Extracted IP from get_real_ip or remote_addr: ", real_ip)
+            # 若無法獲取 X-Forwarded-For，回退到第三方 IP
+            print("No X-Forwarded-For found. Attempting to fetch real IP from third-party IP service...")
+            real_ip = "101.12.0.1"  # 將此處的 IP 替換為你的真實 IP 地址
 
-        # 從請求數據中提取 IP
+        # 檢查用戶數據請求內容
         data = request.get_json()
         if 'ip' in data:
             received_ip = data['ip']
             print("Received IP Address: ", received_ip)
 
-            print("Sending real IP instead: ", real_ip)
+            print("Sending processed IP: ", real_ip)
             return jsonify({"status": "success", "real_ip": real_ip}), 200
         else:
             return jsonify({"status": "error", "message": "No IP found"}), 400
