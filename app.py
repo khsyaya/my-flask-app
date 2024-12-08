@@ -1,31 +1,34 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import requests
 import os
 
 app = Flask(__name__)
 CORS(app)  # 啟用 CORS 支持，允許跨域請求
 
+# IPStack API Key
+IPSTACK_API_KEY = "b65895c140a75e13d0fa796d5c0acaef"  # 將此替換為你自己的 API Key
 
-# 檢測 VPN/代理 IP 範疇
-def is_vpn_or_proxy(ip_address):
-    """
-    檢測是否屬於常見的 VPN/代理 IP 範疇。
-    """
-    vpn_ranges = [
-        "146.70.",  # 常見的 VPN/代理 IP 範疇
-        "103.5.",
-        "104.0.",
-        "178.62.",
-        "35.184.",
-        "13.93.",
-        "45.33."
-    ]
-    
-    for vpn_range in vpn_ranges:
-        if ip_address.startswith(vpn_range):
-            print("Detected VPN/Proxy IP range: ", vpn_range)
-            return True
-    return False
+
+# 使用第三方服務 IPStack 進行真實 IP 查詢和 VPN 檢測
+def fetch_real_ip(ip_address):
+    try:
+        url = f"http://api.ipstack.com/{ip_address}?access_key={IPSTACK_API_KEY}"
+        response = requests.get(url, timeout=5)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("proxy", False) or data.get("vpn", False):  # 檢測是否使用 VPN 或 代理
+                print("Detected VPN/Proxy IP via IPStack analysis.")
+                return True
+            print("IP is normal, no VPN/Proxy detected.")
+            return False
+        else:
+            print("IPStack request failed with status code:", response.status_code)
+            return False
+    except Exception as e:
+        print("Error during IPStack lookup: ", e)
+        return False
 
 
 @app.route('/log', methods=['POST'])
@@ -40,12 +43,12 @@ def log_ip():
             extracted_ip = request.remote_addr
             print("Extracted IP from request.remote_addr: ", extracted_ip)
 
-        # 檢測是否是 VPN/代理 IP 範疇
-        if is_vpn_or_proxy(extracted_ip):
-            print("Detected VPN/Proxy, rejecting request.")
-            return jsonify({"status": "error", "message": "Detected VPN/Proxy IP, cannot determine real IP"}), 400
+        # 使用第三方服務進行 VPN 檢測
+        if fetch_real_ip(extracted_ip):
+            print("VPN/Proxy detected. Rejecting IP.")
+            return jsonify({"status": "error", "message": "Detected VPN/Proxy IP"}), 400
         else:
-            print("No VPN/Proxy detected, sending IP as-is.")
+            print("IP is clean. Sending IP directly.")
             return jsonify({"status": "success", "real_ip": extracted_ip}), 200
 
     except Exception as e:
