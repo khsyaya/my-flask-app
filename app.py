@@ -7,7 +7,7 @@ app = Flask(__name__)
 CORS(app)  # 啟用 CORS 支持，允許跨域請求
 
 # IPStack API Key
-IPSTACK_API_KEY = "b65895c140a75e13d0fa796d5c0acaef"  # 將此替換為你自己的 API Key
+IPSTACK_API_KEY = b65895c140a75e13d0fa796d5c0acaef  # 將此替換為你自己的 API Key
 
 
 # 使用第三方服務 IPStack 進行真實 IP 查詢和 VPN 檢測
